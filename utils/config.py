@@ -54,31 +54,44 @@ class Config:
         self.validate_config()
     
     def load_from_env(self):
-        if os.getenv('TG_API_ID'):
+        # Helper: 安全地从环境变量读取整数，允许行内注释（#）并处理空值或非法值
+        def safe_int_from_env(var_name: str, default: int) -> int:
+            raw = os.getenv(var_name)
+            if raw is None:
+                return default
+            # 去掉 # 之后的注释并 trim
+            value = raw.split('#', 1)[0].strip()
+            if value == '':
+                return default
             try:
-                self.TG_API_ID = int(os.getenv('TG_API_ID'))
+                return int(value)
             except ValueError:
-                logger.error("TG_API_ID 必须是数字")
-        
+                logger.warning(f"环境变量 {var_name} 的值 '{raw}' 不是有效整数，使用默认值 {default}")
+                return default
+
+        # TG API ID（可选但应为整数）
+        if os.getenv('TG_API_ID'):
+            self.TG_API_ID = safe_int_from_env('TG_API_ID', self.TG_API_ID)
+
         self.TG_API_HASH = os.getenv('TG_API_HASH')
-        
+
         self.OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
         self.OPENAI_MODEL = os.getenv('OPENAI_MODEL', self.OPENAI_MODEL)
         self.OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', self.OPENAI_BASE_URL)
-        
+
         self.EMAIL_SMTP_SERVER = os.getenv('EMAIL_SMTP_SERVER', self.EMAIL_SMTP_SERVER)
-        self.EMAIL_SMTP_PORT = int(os.getenv('EMAIL_SMTP_PORT', self.EMAIL_SMTP_PORT))
+        self.EMAIL_SMTP_PORT = safe_int_from_env('EMAIL_SMTP_PORT', self.EMAIL_SMTP_PORT)
         self.EMAIL_USERNAME = os.getenv('EMAIL_USERNAME')
         self.EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
         self.EMAIL_FROM = os.getenv('EMAIL_FROM')
         self.EMAIL_TO = os.getenv('EMAIL_TO')
-        
+
         self.WEB_HOST = os.getenv('WEB_HOST', self.WEB_HOST)
-        self.WEB_PORT = int(os.getenv('WEB_PORT', self.WEB_PORT))
+        self.WEB_PORT = safe_int_from_env('WEB_PORT', self.WEB_PORT)
         self.WEB_DEBUG = os.getenv('WEB_DEBUG', 'false').lower() == 'true'
         self.WEB_USERNAME = os.getenv('WEB_USERNAME', self.WEB_USERNAME)
         self.WEB_PASSWORD = os.getenv('WEB_PASSWORD', self.WEB_PASSWORD)
-        
+
         self.DATA_DIR = os.getenv('DATA_DIR', self.DATA_DIR)
         self.LOGS_DIR = os.getenv('LOGS_DIR', self.LOGS_DIR)
         self.DOWNLOADS_DIR = os.getenv('DOWNLOADS_DIR', self.DOWNLOADS_DIR)
